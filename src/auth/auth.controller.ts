@@ -32,6 +32,7 @@ export class AuthController {
         const tokens=this.authService.generateTokens({sub:user.id, email:user.email});
         //set refresh_token to cookie
         res.cookie('refreshToken', tokens.refresh_token, this.cookieSettings)
+        res.cookie('accessToken', tokens.access_token, this.cookieSettings)
         return {
             access_token:tokens.access_token
         }

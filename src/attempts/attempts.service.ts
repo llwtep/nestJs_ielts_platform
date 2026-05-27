@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AttemptsRepo } from './attempts.repository';
 import { ExamsService } from 'src/exams/exams.service';
-import { attemptCreateDto } from './dto/attempts.dto';
+import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
 
 @Injectable()
 export class AttemptsService {
@@ -23,9 +23,10 @@ export class AttemptsService {
         }else{
             return await this.attemptRepo.create(attempt);
         }
+    }
 
-
-
+    async updateAttempt(attemptId:number,updatedAttempt:AttemptUpdateDto){
+        return await this.attemptRepo.update(attemptId, updatedAttempt)
     }
 
 }

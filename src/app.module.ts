@@ -2,10 +2,9 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule} from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { JwtModule } from '@nestjs/jwt';
 import { ExamsModule } from './exams/exams.module';
 import { AttemptsModule } from './attempts/attempts.module';
 
@@ -15,7 +14,8 @@ import { AttemptsModule } from './attempts/attempts.module';
     DatabaseModule,
     UsersModule, 
     AuthModule, 
-    ExamsModule, AttemptsModule],
+    ExamsModule,
+    AttemptsModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -2,7 +2,6 @@ import { Inject, Injectable } from "@nestjs/common";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { DATABASE_CONNECTION } from "src/database/database-connection";
 import * as schema from 'src/attempts/schema';
-import { attemptCreateDto } from "./dto/attempts.dto";
 import { and, eq, sql } from "drizzle-orm";
 
 
@@ -11,7 +10,7 @@ export class AttemptsRepo{
     constructor(@Inject(DATABASE_CONNECTION) private readonly database:NodePgDatabase<typeof schema>){}
     //create attempt
     async create(attempt:typeof schema.attempts.$inferInsert){
-        return await this.database.insert(schema.attempts).values(attempt);
+        return await this.database.insert(schema.attempts).values(attempt).returning();
     }
     //update attempt
     async update(attemptId: number, data: { status: string; answers: any[] }) {
@@ -21,7 +20,7 @@ export class AttemptsRepo{
                 status: data.status,
                 finishedAt: data.status === 'COMPLETED' ? new Date() : null,
             })
-            .where(eq(schema.attempts.id, attemptId)); 
+            .where(eq(schema.attempts.id, attemptId)).returning({ id: schema.attempts.id }); 
             if (data.answers && data.answers.length > 0) {
             const valuesToInsert = data.answers.map((answer) => ({
                 attemptId: attemptId,
@@ -61,7 +60,6 @@ export class AttemptsRepo{
             where:condition
         });
         return examAttempt;
-
     }
 
 }
