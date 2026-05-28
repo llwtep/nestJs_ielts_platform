@@ -22,5 +22,12 @@ export class AttemptsController {
       return await this.attemptsService.updateAttempt(id,updatedAttempt);
     }
 
+    @Post('finish/:id')
+    async finishAttempt(
+      @Param('id', ParseIntPipe) id:number,
+       @Body() updatedAttempt:AttemptUpdateDto
+    ){
+      return await this.attemptsService.finishAttempt(id,updatedAttempt)
+    }
 
 }

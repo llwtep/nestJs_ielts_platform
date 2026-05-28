@@ -42,6 +42,12 @@ export class AttemptsRepo{
             return { success: true };
         });
         };
+    async updateScores(attemptId:number, scores: typeof schema.attempts.$inferInsert['scores']){
+        await this.database.update(schema.attempts)
+            .set({ scores })
+            .where(eq(schema.attempts.id, attemptId));
+        return { success: true };
+    }
     //get attempt by id
     async getAttempt(attemptId:number){
         const condition=eq(schema.attempts.id, attemptId)

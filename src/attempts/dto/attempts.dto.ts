@@ -32,6 +32,9 @@ export class UserAnswerDto {
 
 
 export class AttemptUpdateDto {
+  @ApiProperty()
+  @IsNumber()
+  examId!:number;
   @ApiProperty({ enum: ['IN_PROGRESS', 'COMPLETED'], example: 'COMPLETED' })
   @IsEnum(['IN_PROGRESS', 'COMPLETED'])
   status!: 'IN_PROGRESS' | 'COMPLETED';
