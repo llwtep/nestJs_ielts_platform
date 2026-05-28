@@ -29,4 +29,11 @@ export class AttemptsService {
         return await this.attemptRepo.update(attemptId, updatedAttempt)
     }
 
+    async finishAttempt(attemptId:number, updatedAttempt:AttemptUpdateDto){
+        //update attempt
+        updatedAttempt.status='COMPLETED';
+        const attemptFinished=await this.attemptRepo.update(attemptId,updatedAttempt);  
+    }
+
+
 }
