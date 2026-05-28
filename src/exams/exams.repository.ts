@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { DATABASE_CONNECTION } from "src/database/database-connection";
 import * as schema from 'src/exams/schema'
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 @Injectable()
 export class ExamRepository{
@@ -65,6 +65,44 @@ export class ExamRepository{
             }
             return newExam;
         });
+    }
+    async getCorrectAnswers(examId:number, sectionType:'LISTENING'|'READING'){
+        const sectionCondition=[eq(schema.examSections.examId, examId)];
+
+        if(sectionType){
+            sectionCondition.push(eq(schema.examSections.type,sectionType));
+        }
+
+        const sectionWithQuestions=await this.database.query.examSections.findMany({
+            where:and(...sectionCondition),
+            with:{
+                questions:{
+                    columns:{
+                        id:true,
+                        questionNumber:true,
+                        correctAnswer:true,
+                        type:true,
+                    }
+                }
+            }
+            
+        });
+
+        const correctAnswersMap=new Map<number,{
+            correctAnswer:string;
+            questionNumber:number;
+            sectionType:string;
+        }>();
+        for(const section of sectionWithQuestions){
+            for (const question of section.questions){
+                correctAnswersMap.set(question.id,{
+                    correctAnswer:question.correctAnswer,
+                    questionNumber:question.questionNumber,
+                    sectionType:section.type
+                });
+            }
+        }
+        return correctAnswersMap;
     }
 
 
