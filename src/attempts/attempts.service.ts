@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { AttemptsRepo } from './attempts.repository';
 import { ExamsService } from 'src/exams/exams.service';
 import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
+import { AiService } from 'src/ai/ai.service';
 
 type AttemptScores = {
     listening?:number;
@@ -21,7 +22,8 @@ type AttemptScores = {
 export class AttemptsService {
     constructor(
         private readonly attemptRepo:AttemptsRepo, 
-        private readonly examService:ExamsService
+        private readonly examService:ExamsService, 
+        private readonly aiService:AiService
     ){}
     
     async startAttempt(attempt:attemptCreateDto){
@@ -77,8 +79,15 @@ export class AttemptsService {
         }
 
         if(writingAnswers.length>0){
-            // TODO: integrate ScoringService here
-            // const writingScore = await this.scoringService.scoreWriting(writingAnswers.map((a)=>a.answerText));
+            const combinedText = writingAnswers.map((a) => a.answerText).join('\n\n');
+            const id: number = writingAnswers[0]?.questionId;
+            const topic = await this.examService.getWritingTopic(id);
+            if (!topic) {
+                throw new NotFoundException(`Question ${id} not found`);
+            }
+            const { type, text } = topic;
+            const writingScore=await this.aiService.analyzeText(combinedText,type,text!);
+            scores.writing=writingScore;
         }
 
         await this.attemptRepo.updateScores(attemptId, scores);

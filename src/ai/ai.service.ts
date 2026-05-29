@@ -12,12 +12,14 @@ export class AiService {
         debugLogger:console 
     });
     }
-    async analyzeText(text:string){
+    async analyzeText(text:string, type:string,qtext:string){
         const prompt = `
                 You are an expert IELTS Writing examiner.
 
                 Evaluate the student's essay using IELTS criteria.
-
+                WRITING TASK:
+                type:${type}
+                Task:${qtext}
                 Return ONLY valid JSON.
 
                 Schema:

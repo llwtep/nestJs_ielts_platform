@@ -105,5 +105,15 @@ export class ExamRepository{
         return correctAnswersMap;
     }
 
+    async getWritingTopic(questionId:number){
+        const condition=eq(schema.questions.id,questionId);
+        return await this.database.query.questions.findFirst({
+            where:condition,
+            columns:{
+                type:true,
+                text:true
+            }
+        })
+    }
 
 }

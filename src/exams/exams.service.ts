@@ -24,4 +24,7 @@ export class ExamsService {
     async getCorrectAnswers({examId,sectionType}:GetAnswerDto){
         return await this.examRepo.getCorrectAnswers(examId,sectionType)
     }
+    async getWritingTopic(questionId:number){
+        return await this.examRepo.getWritingTopic(questionId)
+    }
 }
