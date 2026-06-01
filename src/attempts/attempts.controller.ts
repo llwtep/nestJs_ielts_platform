@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import { AttemptsService } from './attempts.service';
 import { jwtGuard } from 'src/auth/guards/jwt.guard';
 import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
 import { ApiParam } from '@nestjs/swagger';
+import { DomainExceptionFilter } from './exceptions/domain-exceptions';
 
 @Controller('attempts')
+@UseFilters(DomainExceptionFilter)
 export class AttemptsController {
   constructor(private readonly attemptsService: AttemptsService) {}
 
