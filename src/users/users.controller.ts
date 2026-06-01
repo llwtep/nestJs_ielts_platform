@@ -8,17 +8,4 @@ import { createUserDto } from './dto/create-user.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Get(':id')
-  findUsersById(@Param('id', ParseIntPipe) id:number){  
-    return id;
-  }
-
-  @Post()
-  createUser(@Body(ValidationPipe) createUserDto:createUserDto ){
-    return {'msg':'all ok'}
-  }
-  
-
-
-
 }

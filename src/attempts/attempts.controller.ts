@@ -3,7 +3,6 @@ import { AttemptsService } from './attempts.service';
 import { jwtGuard } from 'src/auth/guards/jwt.guard';
 import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
 import { ApiParam } from '@nestjs/swagger';
-import { numeric } from 'drizzle-orm/pg-core';
 
 @Controller('attempts')
 export class AttemptsController {
