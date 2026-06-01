@@ -1,7 +1,9 @@
-import { Body, Controller, Param, ParseIntPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AttemptsService } from './attempts.service';
 import { jwtGuard } from 'src/auth/guards/jwt.guard';
 import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
+import { ApiParam } from '@nestjs/swagger';
+import { numeric } from 'drizzle-orm/pg-core';
 
 @Controller('attempts')
 export class AttemptsController {
@@ -15,6 +17,12 @@ export class AttemptsController {
   }
 
   @Patch(':id')
+  @UseGuards(jwtGuard)
+  @ApiParam({
+    name:'id',
+    description:'Attempt id',
+    type:Number
+  })
   async saveDraft(
     @Param('id', ParseIntPipe) id:number,
     @Body() updatedAttempt:AttemptUpdateDto
@@ -23,11 +31,31 @@ export class AttemptsController {
     }
 
     @Post('finish/:id')
+    @UseGuards(jwtGuard)
+    @ApiParam({
+      name:'id',
+      description:'attempt id',
+      type:Number,
+    })
     async finishAttempt(
       @Param('id', ParseIntPipe) id:number,
        @Body() updatedAttempt:AttemptUpdateDto
     ){
       return await this.attemptsService.finishAttempt(id,updatedAttempt)
+    }
+
+    @Get(':id')
+    @UseGuards(jwtGuard)
+    @ApiParam({
+      name:'id',
+      description:"User id",
+      example:67,
+      type:Number
+    })
+    async getAttemptByUserId(
+      @Param('id', ParseIntPipe) id:number,
+    ){
+      return await this.attemptsService.getAttemptsByUserId(id);
     }
 
 }

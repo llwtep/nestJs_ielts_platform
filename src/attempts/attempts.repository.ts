@@ -68,6 +68,14 @@ export class AttemptsRepo{
         return examAttempt;
     }
 
+    async getAttemptsByUserId(userId:number){
+        const condition=eq(schema.attempts.userId,userId);
+        const attempts=await this.database.query.attempts.findMany({
+            where:condition,
+        });
+        return attempts;
+    }
+
    
 
 }

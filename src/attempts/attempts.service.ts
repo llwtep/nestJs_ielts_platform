@@ -143,4 +143,8 @@ export class AttemptsService {
         return 1.0;
     }
 
+    async getAttemptsByUserId(userId:number){
+        return await this.attemptRepo.getAttemptsByUserId(userId);
+    }
+
 }
