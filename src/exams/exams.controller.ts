@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, UseFilters } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { CreateFullExamDto } from './dto/create-exam.dto';
 import { ApiParam } from '@nestjs/swagger';
+import { DomainExceptionFilter } from './exceptions/domain-exceptions';
 
 @Controller('exams')
+@UseFilters(DomainExceptionFilter)
 export class ExamsController {
   constructor(private readonly examsService: ExamsService) {}
   @Post('create-full')
