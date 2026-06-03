@@ -8,16 +8,24 @@ import { AuthModule } from './auth/auth.module';
 import { ExamsModule } from './exams/exams.module';
 import { AttemptsModule } from './attempts/attempts.module';
 import { AiModule } from './ai/ai.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { CacheConfigService } from './cache-config.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({isGlobal:true}),
+      CacheModule.registerAsync({
+        isGlobal:true,
+        useClass:CacheConfigService,
+      }),
     DatabaseModule,
     UsersModule, 
     AuthModule, 
     ExamsModule,
     AttemptsModule,
-    AiModule],
+    AiModule,
+    
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

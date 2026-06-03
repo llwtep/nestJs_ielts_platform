@@ -1,11 +1,13 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseFilters } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, UseFilters, UseInterceptors } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { CreateFullExamDto } from './dto/create-exam.dto';
 import { ApiParam } from '@nestjs/swagger';
 import { DomainExceptionFilter } from './exceptions/domain-exceptions';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 
 @Controller('exams')
 @UseFilters(DomainExceptionFilter)
+@UseInterceptors(CacheInterceptor)
 export class ExamsController {
   constructor(private readonly examsService: ExamsService) {}
   @Post('create-full')
