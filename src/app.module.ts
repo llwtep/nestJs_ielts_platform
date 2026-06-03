@@ -10,14 +10,19 @@ import { AttemptsModule } from './attempts/attempts.module';
 import { AiModule } from './ai/ai.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { CacheConfigService } from './cache-config.service';
-
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
 @Module({
   imports: [
     ConfigModule.forRoot({isGlobal:true}),
-      CacheModule.registerAsync({
-        isGlobal:true,
-        useClass:CacheConfigService,
-      }),
+    CacheModule.registerAsync({
+      isGlobal:true,
+      useClass:CacheConfigService,
+    }),
+    BullBoardModule.forRoot({
+      route: '/admin/queues', 
+      adapter: ExpressAdapter,
+    }),
     DatabaseModule,
     UsersModule, 
     AuthModule, 
