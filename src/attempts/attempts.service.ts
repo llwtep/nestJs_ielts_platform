@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { AttemptsRepo } from './attempts.repository';
 import { ExamsService } from 'src/exams/exams.service';
 import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
-import { AiService } from 'src/ai/ai.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 

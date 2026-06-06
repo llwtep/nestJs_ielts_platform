@@ -59,6 +59,7 @@ export class AttemptProcessor extends WorkerHost{
                             throw new NotFoundException(`Question ${id} not found`);
                         }
                         const { type, text } = topic;
+                        
                         const writingScore=await this.aiService.analyzeText(combinedText,type,text!);
                         scores.writing=writingScore;
                     }
