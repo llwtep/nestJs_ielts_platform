@@ -9,3 +9,9 @@ export class authPayloadDto{
     @IsString()
     password!:string;
 }
+
+export class authRefreshDto{
+    @ApiProperty()
+    @IsString()
+    refresh_token!:string;
+}

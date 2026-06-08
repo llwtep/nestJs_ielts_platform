@@ -27,16 +27,13 @@ export class AuthController {
     })
     @UsePipes(new ValidationPipe())
     @UseGuards(LocalGuard)
-    login(@Req() req, @Res({passthrough:true}) res:Express.Response){
+    async login(@Req() req){
         const user=req.user;
         const tokens=this.authService.generateTokens({sub:user.id, email:user.email});
-        //set refresh_token to cookie
-        res.cookie('refreshToken', tokens.refresh_token, this.cookieSettings)
-        res.cookie('accessToken', tokens.access_token, this.cookieSettings)
-        return {
-            access_token:tokens.access_token
-        }
+        await this.authService.updateRefreshToken(user.id, tokens.refresh_token);
+        return tokens;
      }
+
     @Post('refresh')
     @ApiResponse({
         status:201,
@@ -45,15 +42,9 @@ export class AuthController {
             example:{access_token:'eyJhbg...'}
         }
     })
-    async refresh(@Req() req:Express.Request){
-        const refresh_token=req.cookies['refreshToken'];
-        if (!refresh_token) {
-        throw new UnauthorizedException('No refresh token found');
-        }
-        const access_token= await this.authService.refreshToken(refresh_token);
-        return {
-            access_token:access_token
-        }
+    async refresh(@Body('refresh_token') refreshToken:string){
+        const tokens=await this.authService.refreshToken(refreshToken);
+        return tokens;
     }
     @Post('signup')
     @ApiResponse({
