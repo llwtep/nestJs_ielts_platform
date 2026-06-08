@@ -1,7 +1,6 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OpenRouter } from '@openrouter/sdk';
-import { Exception } from 'bullmq';
 import pRetry from 'p-retry';
 
 @Injectable()
@@ -83,7 +82,7 @@ export class AiService {
     private async executeRequest(model:string,systemPrompt:string,userText:string){
         const completion=await this.client.chat.send({
             chatRequest:{
-                model:'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+                model:model,
                 responseFormat:{
                     type:"json_object"
                 },
