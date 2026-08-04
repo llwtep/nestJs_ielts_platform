@@ -1,5 +1,5 @@
 export class createProfileDto{
-    userId!:number;
+    userId!:string;
     age!:number;
     biography!:string;
 }

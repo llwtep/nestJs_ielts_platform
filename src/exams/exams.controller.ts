@@ -19,15 +19,15 @@ export class ExamsController {
     name:'id',
     description:'Exam id'
   })
-  async getFullExam(@Param('id', ParseIntPipe) id:number){ 
-    return await this.examsService.getFullExam(id); 
+  async getFullExam(@Param('id') id:string){
+    return await this.examsService.getFullExam(id);
   }
   @ApiParam({
     name:'id',
     description:'Exam id'
   })
   @Get('reading/:id')
-  async getReadingById(@Param('id', ParseIntPipe) id:number){
+  async getReadingById(@Param('id') id:string){
     return await this.examsService.getReadingById(id);
   }
   @ApiParam({
@@ -35,7 +35,7 @@ export class ExamsController {
     description:'Exam id'
   })
   @Get('listening/:id')
-  async getListeningById(@Param('id', ParseIntPipe) id:number){
+  async getListeningById(@Param('id') id:string){
     return await this.examsService.getListeningById(id);
   }
   @ApiParam({
@@ -43,7 +43,7 @@ export class ExamsController {
     description:'Exam id'
   })
   @Get('writing/:id')
-  async getWritingById(@Param('id', ParseIntPipe) id:number){
+  async getWritingById(@Param('id') id:string){
     return await this.examsService.getWritingById(id);
   }
 }

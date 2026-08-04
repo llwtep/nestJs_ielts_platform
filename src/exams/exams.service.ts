@@ -7,7 +7,7 @@ import { ExamNotFoundError } from './exceptions/domain-errors';
 @Injectable()
 export class ExamsService {
     constructor(private readonly examRepo:ExamRepository){}
-    async getFullExam(id:number){
+    async getFullExam(id:string){
         const exam=await this.examRepo.getFullExam(id);
         if(!exam){
             throw new ExamNotFoundError(id);
@@ -17,14 +17,14 @@ export class ExamsService {
     async createFullExam(dto:CreateFullExamDto){
         return await this.examRepo.createCompleteExam(dto);
     }
-    async getReadingById(examId:number){
+    async getReadingById(examId:string){
         const exam=await this.examRepo.getExamSectionByID("READING", examId);
         if(!exam){
             throw new ExamNotFoundError(examId);
         }
         return exam
     }
-    async getWritingById(examId:number){
+    async getWritingById(examId:string){
         const exam= await this.examRepo.getExamSectionByID("WRITING", examId);
         if(!exam){
             throw new ExamNotFoundError(examId);
@@ -32,7 +32,7 @@ export class ExamsService {
         return exam;
 
     }
-    async getListeningById(examId:number){
+    async getListeningById(examId:string){
         const exam=await this.examRepo.getExamSectionByID("LISTENING", examId);
         if(!exam){
             throw new ExamNotFoundError(examId);

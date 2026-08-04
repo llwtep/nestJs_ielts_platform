@@ -4,6 +4,7 @@ import { ExamsService } from 'src/exams/exams.service';
 import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { randomUUID } from 'crypto';
 
 
 
@@ -26,11 +27,14 @@ export class AttemptsService {
         if(attemptOld){
             return attemptOld;
         }else{
-            return await this.attemptRepo.create(attempt);
+            return await this.attemptRepo.create({
+                ...attempt,
+                id: randomUUID()
+            });
         }
     }
 
-    async updateAttempt(attemptId:number,updatedAttempt:AttemptUpdateDto){
+    async updateAttempt(attemptId:string,updatedAttempt:AttemptUpdateDto){
         const attempt=await this.attemptRepo.getAttempt(attemptId);
         if(!attempt){
             throw new NotFoundException(`Attempt with id ${attemptId} not found`);
@@ -38,7 +42,7 @@ export class AttemptsService {
         return await this.attemptRepo.update(attemptId, updatedAttempt)
     }
 
-    async finishAttempt(attemptId:number, updatedAttempt:AttemptUpdateDto){
+    async finishAttempt(attemptId:string, updatedAttempt:AttemptUpdateDto){
         const attempt=await this.attemptRepo.getAttempt(attemptId);
         if(!attempt){
             throw new NotFoundException(`Attempt with id ${attemptId} not found`);
@@ -62,7 +66,7 @@ export class AttemptsService {
 
     
 
-    async getAttemptsByUserId(userId:number){
+    async getAttemptsByUserId(userId:string){
         return await this.attemptRepo.getAttemptsByUserId(userId);
     }
 

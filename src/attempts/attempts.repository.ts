@@ -3,6 +3,7 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { DATABASE_CONNECTION } from "src/database/database-connection";
 import * as schema from 'src/attempts/schema';
 import { and, eq, sql } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 
 @Injectable()
@@ -13,7 +14,7 @@ export class AttemptsRepo{
         return await this.database.insert(schema.attempts).values(attempt).returning();
     }
     //update attempt
-    async update(attemptId: number, data: { status: string; answers: any[] }) {
+    async update(attemptId: string, data: { status: string; answers: any[] }) {
         return await this.database.transaction(async (tx) => {
             await tx.update(schema.attempts)
             .set({
@@ -42,21 +43,21 @@ export class AttemptsRepo{
             return { success: true };
         });
         };
-    async updateScores(attemptId:number, scores: typeof schema.attempts.$inferInsert['scores']){
+    async updateScores(attemptId:string, scores: typeof schema.attempts.$inferInsert['scores']){
         await this.database.update(schema.attempts)
             .set({ scores })
             .where(eq(schema.attempts.id, attemptId));
         return { success: true };
     }
     //get attempt by id
-    async getAttempt(attemptId:number){
+    async getAttempt(attemptId:string){
         const condition=eq(schema.attempts.id, attemptId)
         return this.database.query.attempts.findFirst({
             where:condition
         })
     }
     //check attempt with exam id
-    async IsInProgressAttempt(examId:number, userId:number){
+    async IsInProgressAttempt(examId:string, userId:string){
         const condition = and(
             eq(schema.attempts.examId, examId),
             eq(schema.attempts.userId, userId),
@@ -68,7 +69,7 @@ export class AttemptsRepo{
         return examAttempt;
     }
 
-    async getAttemptsByUserId(userId:number){
+    async getAttemptsByUserId(userId:string){
         const condition=eq(schema.attempts.userId,userId);
         const attempts=await this.database.query.attempts.findMany({
             where:condition,

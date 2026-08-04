@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { DATABASE_CONNECTION } from "src/database/database-connection";
 import * as schema from 'src/users/schema'
+import { randomUUID } from "crypto";
 @Injectable()
 export class UserRepository{
     constructor(
@@ -11,7 +12,11 @@ export class UserRepository{
 
     
     async createUser(user:typeof schema.users.$inferInsert){
-        await this.database.insert(schema.users).values(user);
+        const [createdUser] = await this.database.insert(schema.users).values({
+            ...user,
+            id: user.id || randomUUID()
+        }).returning();
+        return createdUser;
     }
     
     async getByEmail(email:string){

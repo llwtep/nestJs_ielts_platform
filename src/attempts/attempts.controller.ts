@@ -22,10 +22,10 @@ export class AttemptsController {
   @ApiParam({
     name:'id',
     description:'Attempt id',
-    type:Number
+    type:String
   })
   async saveDraft(
-    @Param('id', ParseIntPipe) id:number,
+    @Param('id') id:string,
     @Body() updatedAttempt:AttemptUpdateDto
     ){
       return await this.attemptsService.updateAttempt(id,updatedAttempt);
@@ -36,10 +36,10 @@ export class AttemptsController {
     @ApiParam({
       name:'id',
       description:'attempt id',
-      type:Number,
+      type:String,
     })
     async finishAttempt(
-      @Param('id', ParseIntPipe) id:number,
+      @Param('id') id:string,
        @Body() updatedAttempt:AttemptUpdateDto
     ){
       return await this.attemptsService.finishAttempt(id,updatedAttempt)
@@ -50,11 +50,10 @@ export class AttemptsController {
     @ApiParam({
       name:'id',
       description:"User id",
-      example:67,
-      type:Number
+      type:String
     })
     async getAttemptByUserId(
-      @Param('id', ParseIntPipe) id:number,
+      @Param('id') id:string,
     ){
       return await this.attemptsService.getAttemptsByUserId(id);
     }

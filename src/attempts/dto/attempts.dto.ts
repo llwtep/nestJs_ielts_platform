@@ -5,12 +5,12 @@ import { IsArray, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from 
 
 export class attemptCreateDto{
     @ApiProperty()
-    @IsNumber()
+    @IsString()
     @IsOptional()
-    userId!:number;
+    userId!:string;
     @ApiProperty()
-    @IsNumber()
-    examId!:number;
+    @IsString()
+    examId!:string;
     @ApiProperty({ enum: ['IN_PROGRESS', 'COMPLETED'], example: 'IN_PROGRESS' })
     @IsEnum(['IN_PROGRESS', 'COMPLETED'])
     status!:string;
@@ -34,8 +34,8 @@ export class UserAnswerDto {
 
 export class AttemptUpdateDto {
   @ApiProperty()
-  @IsNumber()
-  examId!:number;
+  @IsString()
+  examId!:string;
   @ApiProperty({ enum: ['IN_PROGRESS', 'COMPLETED'], example: 'COMPLETED' })
   @IsEnum(['IN_PROGRESS', 'COMPLETED'])
   status!: 'IN_PROGRESS' | 'COMPLETED';

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserRepository } from './users.repository';
 import { createUserDto } from './dto/create-user.dto';
+import { randomUUID } from 'crypto';
 @Injectable()
 export class UsersService {
     constructor(private readonly userRepo:UserRepository){}
@@ -9,7 +10,10 @@ export class UsersService {
         return user;
     }
     async create(user:createUserDto){
-        const newuser=await this.userRepo.createUser(user);
+        const newuser=await this.userRepo.createUser({
+            ...user,
+            id: randomUUID()
+        });
         return newuser;
     }
 

@@ -1,10 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsNumber } from "class-validator";
+import { IsEnum, IsString } from "class-validator";
 
 export class GetAnswerDto{
     @ApiProperty()
-    @IsNumber()
-    examId:number=0;
+    @IsString()
+    examId:string="";
     @ApiProperty({enum:['LISTENING', 'READING']})
     @IsEnum(['LISTENING', 'READING'])
     sectionType!:'LISTENING'| 'READING';

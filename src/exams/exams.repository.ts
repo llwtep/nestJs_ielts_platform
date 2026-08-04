@@ -3,11 +3,12 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { DATABASE_CONNECTION } from "src/database/database-connection";
 import * as schema from 'src/exams/schema'
 import { and, eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 @Injectable()
 export class ExamRepository{
     constructor(@Inject(DATABASE_CONNECTION) private readonly database:NodePgDatabase<typeof schema>){}
-    async getFullExam(examId:number){
+    async getFullExam(examId:string){
         return await this.database.query.exams.findFirst({
             where:eq(schema.exams.id, examId),
             with:{
@@ -20,7 +21,7 @@ export class ExamRepository{
         });
     };
 
-    async getExamSectionByID(sectionType:'READING' | 'LISTENING' | 'WRITING', examId:number){
+    async getExamSectionByID(sectionType:'READING' | 'LISTENING' | 'WRITING', examId:string){
         return await this.database.query.exams.findFirst({
             where:eq(schema.exams.id, examId),
             with:{
@@ -41,11 +42,12 @@ export class ExamRepository{
         sections:any[]
     }){
         return await this.database.transaction(async (tx)=>{
-            const [newExam]=await tx.insert(schema.exams).values({title:data.title}).returning()
+            const [newExam]=await tx.insert(schema.exams).values({id:randomUUID(),title:data.title}).returning()
 
             for (const section of data.sections){
                 const [newSection]=await tx.insert(schema.examSections).values(
                     {
+                        id:randomUUID(),
                         examId:newExam.id,
                         type:section.type,
                         partNumber:section.partNumber,
@@ -66,7 +68,7 @@ export class ExamRepository{
             return newExam;
         });
     }
-    async getCorrectAnswers(examId:number, sectionType:'LISTENING'|'READING'){
+    async getCorrectAnswers(examId:string, sectionType:'LISTENING'|'READING'){
         const sectionCondition=[eq(schema.examSections.examId, examId)];
 
         if(sectionType){

@@ -43,7 +43,7 @@ export class AuthService {
         }
     }
 
-    async updateRefreshToken(userId:number, refreshToken:string){
+    async updateRefreshToken(userId:string, refreshToken:string){
     const hashedRefreshToken=await bcrypt.hash(refreshToken,10);
     await this.cacheManager.set(`refreshToken:${userId}`, hashedRefreshToken, 7*24*60*60*1000);
     }
