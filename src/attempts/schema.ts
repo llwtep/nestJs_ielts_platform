@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, serial, integer,text, jsonb, timestamp, boolean, uniqueIndex, uuid} from "drizzle-orm/pg-core";
+import { pgTable, serial, integer,text, jsonb, timestamp, boolean, uniqueIndex, uuid, index} from "drizzle-orm/pg-core";
 import { exams, questions } from "src/exams/schema";
 import { users } from "src/users/schema";
 
@@ -23,7 +23,10 @@ export const attempts=pgTable('attempts',{
     }>(),
     createdAt:timestamp('created_at').defaultNow().notNull(),
     finishedAt:timestamp('finished_at'),
-});
+    },(table)=>({
+        userIdIdx:index('attempt_user_id_idx').on(table.userId),
+        examIdIdx:index('attempt_exam_id_idx').on(table.examId),
+    }));
 
 
 export const userAnswers=pgTable('user_answers',{
@@ -35,6 +38,7 @@ export const userAnswers=pgTable('user_answers',{
     isCorrect:boolean('is_correct'),
 },  (table)=>({
     attemptQuestionIdx:uniqueIndex('attempt_question_idx').on(table.attemptId, table.questionId),
+    questionIdIdx: index('user_answers_question_id_idx').on(table.questionId),
 }));
 
 

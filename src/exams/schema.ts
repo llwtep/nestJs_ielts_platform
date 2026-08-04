@@ -1,6 +1,7 @@
 
 import { relations } from "drizzle-orm";
-import { uuid, text, integer, serial} from "drizzle-orm/pg-core";
+
+import { uuid, text, integer, serial, index} from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
 
 export const exams=pgTable('exams',{
@@ -17,7 +18,9 @@ export const examSections = pgTable('exam_sections', {
   title: text('title'), 
   content: text('content'), 
   contentUrl: text('content_url'), 
-}); 
+    },(table)=>({
+        examIdIdx:index('exam_sections_exam_id_idx').on(table.examId)
+    })); 
 
 export const questions = pgTable('questions', {
   id: serial('id').primaryKey(),
@@ -27,7 +30,10 @@ export const questions = pgTable('questions', {
   text: text('text'), 
   options: text('options'), 
   correctAnswer: text('correct_answer').notNull(), 
-});
+},(table)=>({
+    sectionIdx:index('questions_section_id_idx').on(table.sectionId)
+})
+);
 
 export const examRelations=relations(exams, ({many})=>({
     sections:many(examSections),
