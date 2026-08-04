@@ -6,6 +6,7 @@ import { IsArray, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from 
 export class attemptCreateDto{
     @ApiProperty()
     @IsNumber()
+    @IsOptional()
     userId!:number;
     @ApiProperty()
     @IsNumber()
