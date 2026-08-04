@@ -1,17 +1,17 @@
 
 import { relations } from "drizzle-orm";
-import { serial, text, integer} from "drizzle-orm/pg-core";
+import { uuid, text, integer, serial} from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
 
 export const exams=pgTable('exams',{
-    id:serial('id').primaryKey(),
+    id:uuid('id').primaryKey(),
     type:text('type'),
     title:text('title')
 })
 
 export const examSections = pgTable('exam_sections', {
-  id: serial('id').primaryKey(),
-  examId: integer('exam_id').references(() => exams.id, { onDelete: 'cascade' }).notNull(),
+  id: uuid('id').primaryKey(),
+  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'cascade' }).notNull(),
   type: text('type').notNull(),
   partNumber: integer('part_number').notNull(), 
   title: text('title'), 
@@ -21,7 +21,7 @@ export const examSections = pgTable('exam_sections', {
 
 export const questions = pgTable('questions', {
   id: serial('id').primaryKey(),
-  sectionId: integer('section_id').references(() => examSections.id, { onDelete: 'cascade' }).notNull(),
+  sectionId: uuid('section_id').references(() => examSections.id, { onDelete: 'cascade' }).notNull(),
   questionNumber: integer('question_number').notNull(), 
   type: text('type').notNull(), 
   text: text('text'), 
