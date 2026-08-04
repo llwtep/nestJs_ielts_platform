@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AttemptsService } from './attempts.service';
 import { jwtGuard } from 'src/auth/guards/jwt.guard';
 import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
-import { ApiParam } from '@nestjs/swagger';
+import { ApiParam, ApiBearerAuth} from '@nestjs/swagger';
 
 
 @Controller('attempts')
@@ -11,6 +11,7 @@ export class AttemptsController {
 
   @Post('')
   @UseGuards(jwtGuard)
+  @ApiBearerAuth()
   async start_attempt(@Req() req,@Body() attempt:attemptCreateDto){
     attempt.userId=req.user.sub;
     return await this.attemptsService.startAttempt(attempt);
@@ -18,6 +19,7 @@ export class AttemptsController {
 
   @Patch(':id')
   @UseGuards(jwtGuard)
+  @ApiBearerAuth()
   @ApiParam({
     name:'id',
     description:'Attempt id',
@@ -32,6 +34,7 @@ export class AttemptsController {
 
     @Post('finish/:id')
     @UseGuards(jwtGuard)
+    @ApiBearerAuth()
     @ApiParam({
       name:'id',
       description:'attempt id',
@@ -44,17 +47,13 @@ export class AttemptsController {
       return await this.attemptsService.finishAttempt(id,updatedAttempt)
     }
 
-    @Get(':id')
+    @Get('mine')
     @UseGuards(jwtGuard)
-    @ApiParam({
-      name:'id',
-      description:"User id",
-      type:String
-    })
-    async getAttemptByUserId(
-      @Param('id') id:string,
+    @ApiBearerAuth()
+    async getMyAttempts(
+      @Req() req,
     ){
-      return await this.attemptsService.getAttemptsByUserId(id);
+      return await this.attemptsService.getAttemptsByUserId(req.user.sub);
     }
 
 }

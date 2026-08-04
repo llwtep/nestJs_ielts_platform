@@ -4,7 +4,7 @@ import { LocalGuard } from './guards/local.guard';
 import { jwtGuard } from './guards/jwt.guard';
 import { createUserDto } from 'src/users/dto/create-user.dto';
 import * as Express from 'express';
-import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { authPayloadDto } from './dto/auth.dto';
 @Controller('auth')
 export class AuthController {
@@ -61,6 +61,7 @@ export class AuthController {
 
      @Get('status')
      @UseGuards(jwtGuard)
+     @ApiBearerAuth()
      status(@Req() req){
         return req.user
      }

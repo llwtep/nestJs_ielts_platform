@@ -12,6 +12,7 @@ async function bootstrap() {
   .setTitle('IELTS EXAMS')
   .setDescription('API Documentation for ielts backend')
   .setVersion('1.0')
+  .addBearerAuth()
   .build();
 
 
