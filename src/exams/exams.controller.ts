@@ -11,11 +11,9 @@ import { AdminGuard } from 'src/auth/guards/admin.guard';
 @UseGuards(jwtGuard)
 @ApiBearerAuth()
 @UseFilters(DomainExceptionFilter)
-@UseInterceptors(CacheInterceptor)
 export class ExamsController {
   constructor(private readonly examsService: ExamsService) {}
   @Get()
-  @ApiBearerAuth()
   async listExams(){
     return await this.examsService.listExams();
   }
@@ -25,7 +23,7 @@ export class ExamsController {
       return await this.examsService.createFullExam(createExamDto);
     }
   @Get(':id')
-  @ApiBearerAuth()
+  @UseInterceptors(CacheInterceptor)
   @ApiParam({
     name:'id',
     description:'Exam id'
@@ -37,7 +35,7 @@ export class ExamsController {
     name:'id',
     description:'Exam id'
   })
-  @ApiBearerAuth()
+  @UseInterceptors(CacheInterceptor)
   @Get('reading/:id')
   async getReadingById(@Param('id', ParseUUIDPipe) id:string){
     return await this.examsService.getReadingById(id);
@@ -46,7 +44,7 @@ export class ExamsController {
     name:'id',
     description:'Exam id'
   })
-  @ApiBearerAuth()
+  @UseInterceptors(CacheInterceptor)
   @Get('listening/:id')
   async getListeningById(@Param('id', ParseUUIDPipe) id:string){
     return await this.examsService.getListeningById(id);
@@ -55,7 +53,7 @@ export class ExamsController {
     name:'id',
     description:'Exam id'
   })
-  @ApiBearerAuth()
+  @UseInterceptors(CacheInterceptor)
   @Get('writing/:id')
   async getWritingById(@Param('id', ParseUUIDPipe) id:string){
     return await this.examsService.getWritingById(id);

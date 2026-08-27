@@ -12,6 +12,10 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { CacheConfigService } from './cache-config.service';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
+import { BullModule } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
+import { redisConnection } from './redis.config';
+import { bullBoardAuth } from './bull-board-auth.middleware';
 @Module({
   imports: [
     ConfigModule.forRoot({isGlobal:true}),
@@ -19,9 +23,20 @@ import { ExpressAdapter } from '@bull-board/express';
       isGlobal:true,
       useClass:CacheConfigService,
     }),
-    BullBoardModule.forRoot({
-      route: '/admin/queues', 
-      adapter: ExpressAdapter,
+    BullModule.forRootAsync({
+      inject:[ConfigService],
+      useFactory:(config:ConfigService)=>({connection:redisConnection(config)}),
+    }),
+    BullBoardModule.forRootAsync({
+      inject:[ConfigService],
+      useFactory:(config:ConfigService)=>({
+        route: '/admin/queues',
+        adapter: ExpressAdapter,
+        middleware: bullBoardAuth(
+          config.getOrThrow<string>('BULL_BOARD_USER'),
+          config.getOrThrow<string>('BULL_BOARD_PASSWORD'),
+        ),
+      }),
     }),
     DatabaseModule,
     UsersModule, 

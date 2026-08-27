@@ -12,12 +12,6 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 
 @Module({
   imports:[
-    BullModule.forRoot({
-          connection:{
-            host:'127.0.0.1',
-            port:6379,
-          }
-        }),
     BullModule.registerQueue({
       name:'exam-checking'
     }),
