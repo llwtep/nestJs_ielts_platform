@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { DATABASE_CONNECTION } from "src/database/database-connection";
 import * as schema from 'src/exams/schema'
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 @Injectable()
@@ -64,10 +64,15 @@ export class ExamRepository{
 
     async createCompleteExam(data:{
         title:string,
+        type?:string,
         sections:any[]
     }){
         return await this.database.transaction(async (tx)=>{
-            const [newExam]=await tx.insert(schema.exams).values({id:randomUUID(),title:data.title}).returning()
+            const [newExam]=await tx.insert(schema.exams).values({
+                id:randomUUID(),
+                title:data.title,
+                type:data.type ?? 'ACADEMIC',
+            }).returning()
 
             for (const section of data.sections){
                 const [newSection]=await tx.insert(schema.examSections).values(
@@ -96,54 +101,22 @@ export class ExamRepository{
             return newExam;
         });
     }
-    async getCorrectAnswers(examId:string, sectionType:'LISTENING'|'READING'){
-        const sectionCondition=[eq(schema.examSections.examId, examId)];
-
-        if(sectionType){
-            sectionCondition.push(eq(schema.examSections.type,sectionType));
-        }
-
-        const sectionWithQuestions=await this.database.query.examSections.findMany({
-            where:and(...sectionCondition),
+    // всё, что нужно для проверки попытки: тип секции берём отсюда, а не от клиента
+    async getAnswerKey(examId:string){
+        return await this.database.query.examSections.findMany({
+            where:eq(schema.examSections.examId, examId),
             with:{
                 questions:{
                     columns:{
                         id:true,
                         questionNumber:true,
-                        correctAnswer:true,
                         type:true,
+                        text:true,
+                        correctAnswer:true,
                     }
                 }
             }
-            
         });
-
-        const correctAnswersMap=new Map<number,{
-            correctAnswer:string;
-            questionNumber:number;
-            sectionType:string;
-        }>();
-        for(const section of sectionWithQuestions){
-            for (const question of section.questions){
-                correctAnswersMap.set(question.id,{
-                    correctAnswer:question.correctAnswer,
-                    questionNumber:question.questionNumber,
-                    sectionType:section.type
-                });
-            }
-        }
-        return correctAnswersMap;
-    }
-
-    async getWritingTopic(questionId:number){
-        const condition=eq(schema.questions.id,questionId);
-        return await this.database.query.questions.findFirst({
-            where:condition,
-            columns:{
-                type:true,
-                text:true
-            }
-        })
     }
 
 }

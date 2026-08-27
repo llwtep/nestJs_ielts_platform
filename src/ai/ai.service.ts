@@ -8,19 +8,22 @@ export class AiService {
     private client: OpenRouter;
     private readonly logger=new Logger(AiService.name);
 
-    private readonly modelFallBackList=[
-        'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-        'nvidia/nemotron-3.5-content-safety:free',
-        'nvidia/nemotron-3-ultra-550b-a55b:free',
-        'liquid/lfm-2.5-1.2b-thinking:free',
+    private readonly models:string[];
+
+    //список моделей задаётся через AI_MODELS, иначе дефолт ниже
+    private static readonly DEFAULT_MODELS=[
         'openai/gpt-oss-120b:free',
         'z-ai/glm-4.5-air:free',
         'meta-llama/llama-3.3-70b-instruct:free',
-        'nousresearch/hermes-3-llama-3.1-405b:free'
-    ]
+    ];
 
+    private static readonly REQUEST_TIMEOUT_MS=45_000;
 
     constructor(private configService:ConfigService){
+        const configured=this.configService.get<string>('AI_MODELS');
+        this.models=configured
+            ? configured.split(',').map((m)=>m.trim()).filter(Boolean)
+            : AiService.DEFAULT_MODELS;
         this.client=new OpenRouter({
         apiKey:this.configService.get<string>('OPENROUTER_API_KEY'),
         debugLogger:console 
@@ -57,12 +60,12 @@ export class AiService {
                 `;
 
 
-        for (const model of this.modelFallBackList){
+        for (const model of this.models){
             try{
                 this.logger.log(`Attempting request with model: ${model}`);
 
                 const result=await pRetry(
-                            ()=>this.executeRequest(model,prompt,text),
+                            ()=>this.withTimeout(this.executeRequest(model,prompt,text)),
                             {retries:2,minTimeout:1000}
                 );
                 return result;
@@ -77,6 +80,16 @@ export class AiService {
             );
         
         
+    }
+
+    //без этого зависший запрос держит воркер бесконечно
+    private withTimeout<T>(request:Promise<T>):Promise<T>{
+        return Promise.race([
+            request,
+            new Promise<never>((_,reject)=>
+                setTimeout(()=>reject(new Error('AI request timed out')), AiService.REQUEST_TIMEOUT_MS),
+            ),
+        ]);
     }
 
     private async executeRequest(model:string,systemPrompt:string,userText:string){

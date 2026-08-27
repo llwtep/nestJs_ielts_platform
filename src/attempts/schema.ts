@@ -2,25 +2,14 @@ import { relations } from "drizzle-orm";
 import { pgTable, serial, integer,text, jsonb, timestamp, boolean, uniqueIndex, uuid, index} from "drizzle-orm/pg-core";
 import { exams, questions } from "src/exams/schema";
 import { users } from "src/users/schema";
+import { AttemptScores } from "./scoring";
 
 export const attempts=pgTable('attempts',{
     id:uuid('id').primaryKey(),
     userId:uuid('user_id').references(()=>users.id, {onDelete:'cascade'}).notNull(),
     examId:uuid('exam_id').references(()=>exams.id,{onDelete:'cascade'}).notNull(),
     status:text('status').default('IN_PROGRESS'),
-    scores:jsonb('scores').$type<{
-        listening?:number;
-        reading?:number;
-        writing?:{
-            band:number;
-            taskResponse: number;
-            coherence: number;
-            lexical: number;
-            grammar: number;
-            feedback: string;
-        };
-        overall?:number
-    }>(),
+    scores:jsonb('scores').$type<AttemptScores>(),
     createdAt:timestamp('created_at').defaultNow().notNull(),
     finishedAt:timestamp('finished_at'),
     },(table)=>({

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ExamRepository } from './exams.repository';
 import { CreateFullExamDto } from './dto/create-exam.dto';
-import { GetAnswerDto } from './dto/get-answer.dto';
 import { ExamNotFoundError } from './exceptions/domain-errors';
 
 @Injectable()
@@ -45,10 +44,8 @@ export class ExamsService {
         }
         return exam;
     }
-    async getCorrectAnswers({examId,sectionType}:GetAnswerDto){
-        return await this.examRepo.getCorrectAnswers(examId,sectionType)
+    async getAnswerKey(examId:string){
+        return await this.examRepo.getAnswerKey(examId);
     }
-    async getWritingTopic(questionId:number){
-        return await this.examRepo.getWritingTopic(questionId)
-    }
+
 }

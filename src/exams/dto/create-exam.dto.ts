@@ -50,6 +50,10 @@
     @ApiProperty()
     @IsString()
     title!: string;
+    @ApiProperty({ enum: ['ACADEMIC', 'GENERAL'], example: 'ACADEMIC', required: false })
+    @IsOptional()
+    @IsEnum(['ACADEMIC', 'GENERAL'])
+    type?: 'ACADEMIC' | 'GENERAL';
     @ApiProperty()
     @IsArray()
     @ValidateNested({ each: true })

@@ -4,24 +4,22 @@ import { Job } from "bullmq";
 import { AttemptsRepo } from './attempts.repository';
 import { ExamsService } from 'src/exams/exams.service';
 import { AiService } from "src/ai/ai.service";
-
-type AttemptScores = {
-    listening?:number;
-    reading?:number;
-    writing?:{
-        band:number;
-        taskResponse: number;
-        coherence: number;
-        lexical: number;
-        grammar: number;
-        feedback: string;
-    };
-    overall?:number;
-};
+import {
+    AttemptScores,
+    ExamType,
+    isAnswerCorrect,
+    overallBand,
+    parseWritingScore,
+    rawToBand,
+    WritingTaskScore,
+    writingBand,
+} from "./scoring";
 
 @Processor('exam-checking')
 @Injectable()
 export class AttemptProcessor extends WorkerHost{
+    private readonly logger=new Logger(AttemptProcessor.name);
+
     constructor(
     private readonly examService: ExamsService, 
     private readonly aiService: AiService,
@@ -29,7 +27,6 @@ export class AttemptProcessor extends WorkerHost{
   ) {
     super();
   }
-    private readonly logger=new Logger(AttemptProcessor.name);
 
     async process(job: Job<any, any, string>): Promise<any> {
         if(job.name!=='analyze-scores') return;
@@ -41,36 +38,77 @@ export class AttemptProcessor extends WorkerHost{
         }
         await this.attemptRepo.setStatus(attemptId,'SCORING');
 
-        const [listeningCorrect, readingCorrect]=await Promise.all([
-            this.examService.getCorrectAnswers({examId:attempt.examId, sectionType:'LISTENING'}),
-            this.examService.getCorrectAnswers({examId:attempt.examId, sectionType:'READING'}),
-        ]);
-        const answers=attempt.answers ?? [];
-        const listeningAnswers=answers.filter((answer)=>answer.typeOfSection==='LISTENING');
-        const readingAnswers=answers.filter((answer)=>answer.typeOfSection==='READING');
-        const writingAnswers=answers.filter((answer)=>answer.typeOfSection==='WRITING');
-        const scores:AttemptScores={}
-        //секции нет в экзамене - не выставляем за неё балл
-        if(listeningCorrect.size>0){
-            const listeningRawScore=this.calculateRawScore(listeningAnswers, listeningCorrect);
-            scores.listening=this.convertRawToBand(listeningRawScore);
-        }
-        if(readingCorrect.size>0){
-            const readingRawScore=this.calculateRawScore(readingAnswers, readingCorrect);
-            scores.reading=this.convertRawToBand(readingRawScore);
-        }
-        if(writingAnswers.length>0){
-            const combinedText = writingAnswers.map((a) => a.answerText).join('\n\n');
-            const id: number = writingAnswers[0].questionId;
-            const topic = await this.examService.getWritingTopic(id);
-            if (!topic) {
-                throw new NotFoundException(`Question ${id} not found`);
-            }
-            const { type, text } = topic;
+        const sections=await this.examService.getAnswerKey(attempt.examId);
+        const examType:ExamType=attempt.exam?.type==='GENERAL' ? 'GENERAL' : 'ACADEMIC';
 
-            const writingScore=await this.aiService.analyzeText(combinedText,type,text!);
-            scores.writing=writingScore;
+        //questionId -> вопрос вместе с его секцией
+        const answerKey=new Map<number,{
+            sectionType:string;
+            partNumber:number;
+            questionType:string;
+            text:string|null;
+            correctAnswer:string;
+        }>();
+        const total={LISTENING:0, READING:0};
+        for(const section of sections){
+            for(const question of section.questions){
+                answerKey.set(question.id,{
+                    sectionType:section.type,
+                    partNumber:section.partNumber,
+                    questionType:question.type,
+                    text:question.text,
+                    correctAnswer:question.correctAnswer,
+                });
+                if(section.type==='LISTENING'||section.type==='READING'){
+                    total[section.type]++;
+                }
+            }
         }
+
+        const verdicts=new Map<number, boolean>();
+        const raw={LISTENING:0, READING:0};
+        const writingTasks:{task:number; questionType:string; topic:string; text:string}[]=[];
+
+        for(const answer of attempt.answers){
+            const question=answerKey.get(answer.questionId);
+            //ответ на вопрос не из этого экзамена - игнорируем
+            if(!question) continue;
+            if(question.sectionType==='WRITING'){
+                writingTasks.push({
+                    task:question.partNumber,
+                    questionType:question.questionType,
+                    topic:question.text ?? '',
+                    text:answer.answerText,
+                });
+                continue;
+            }
+            if(question.sectionType!=='LISTENING' && question.sectionType!=='READING') continue;
+            const correct=isAnswerCorrect(answer.answerText, question.correctAnswer);
+            verdicts.set(answer.questionId, correct);
+            if(correct) raw[question.sectionType]++;
+        }
+
+        const scores:AttemptScores={};
+        //секции нет в экзамене - не выставляем за неё балл
+        if(total.LISTENING>0) scores.listening=rawToBand(raw.LISTENING,total.LISTENING,'LISTENING',examType);
+        if(total.READING>0) scores.reading=rawToBand(raw.READING,total.READING,'READING',examType);
+
+        if(writingTasks.length>0){
+            //Task 1 и Task 2 - разные задания, каждое оценивается отдельно
+            const graded:WritingTaskScore[]=[];
+            for(const task of writingTasks.sort((a,b)=>a.task-b.task)){
+                const result=await this.aiService.analyzeText(task.text, task.questionType, task.topic);
+                graded.push(parseWritingScore(result, task.task));
+            }
+            const band=writingBand(graded);
+            if(band!==undefined) scores.writing={band, tasks:graded};
+        }
+
+        const modules=[scores.listening, scores.reading, scores.writing?.band]
+            .filter((b): b is number => b!==undefined);
+        scores.overall=overallBand(modules);
+
+        await this.attemptRepo.markAnswers(attemptId, verdicts);
         await this.attemptRepo.updateScores(attemptId, scores, 'SCORED');
         return { success: true, scores };
     }
@@ -83,54 +121,5 @@ export class AttemptProcessor extends WorkerHost{
         if(job.data?.attemptId){
             await this.attemptRepo.setStatus(job.data.attemptId,'SCORING_FAILED');
         }
-    }
-
-    private normalizeAnswer(answerText:string){
-        return answerText.trim().replace(/\s+/g,' ').toLowerCase();
-    }
-
-    private calculateRawScore(
-        answers:{questionId:number; answerText:string}[],
-        correctAnswersMap:Map<number,{correctAnswer:string}>
-        ){
-        let rawScore=0;
-        for(const answer of answers){
-            const correct=correctAnswersMap.get(answer.questionId);
-            if(!correct){
-                continue;
-            }
-            if(this.normalizeAnswer(answer.answerText)===this.normalizeAnswer(correct.correctAnswer)){
-                rawScore+=1;
-            }
-        }
-        return rawScore;
-    }
-
-    private convertRawToBand(rawScore:number){
-        const scoreTable:{min:number; band:number}[]=[
-            {min:39, band:9.0},
-            {min:37, band:8.5},
-            {min:35, band:8.0},
-            {min:32, band:7.5},
-            {min:30, band:7.0},
-            {min:26, band:6.5},
-            {min:23, band:6.0},
-            {min:18, band:5.5},
-            {min:16, band:5.0},
-            {min:13, band:4.5},
-            {min:10, band:4.0},
-            {min:8, band:3.5},
-            {min:6, band:3.0},
-            {min:4, band:2.5},
-            {min:2, band:2.0},
-            {min:1, band:1.0},
-            {min:0, band:1.0},
-        ];
-        for(const step of scoreTable){
-            if(rawScore>=step.min){
-                return step.band;
-            }
-        }
-        return 1.0;
     }
 }
