@@ -7,6 +7,12 @@ import { ExamNotFoundError } from './exceptions/domain-errors';
 @Injectable()
 export class ExamsService {
     constructor(private readonly examRepo:ExamRepository){}
+    async listExams(){
+        return await this.examRepo.listExams();
+    }
+    async examExists(examId:string){
+        return await this.examRepo.examExists(examId);
+    }
     async getFullExam(id:string){
         const exam=await this.examRepo.getFullExam(id);
         if(!exam){

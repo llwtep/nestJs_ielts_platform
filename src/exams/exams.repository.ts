@@ -8,18 +8,39 @@ import { randomUUID } from "crypto";
 @Injectable()
 export class ExamRepository{
     constructor(@Inject(DATABASE_CONNECTION) private readonly database:NodePgDatabase<typeof schema>){}
+
+    async listExams(){
+        return await this.database.query.exams.findMany({
+            orderBy:(e,{asc})=>[asc(e.title)],
+        });
+    }
+
     async getFullExam(examId:string){
         return await this.database.query.exams.findFirst({
             where:eq(schema.exams.id, examId),
             with:{
                 sections:{
+                    orderBy:(s,{asc})=>[asc(s.partNumber)],
                     with:{
-                        questions:true
+                        // correctAnswer наружу не отдаём
+                        questions:{
+                            columns:{correctAnswer:false},
+                            orderBy:(q,{asc})=>[asc(q.questionNumber)],
+                        }
                     },
                 },
             },
         });
     };
+
+    // без загрузки вопросов - для проверок существования экзамена
+    async examExists(examId:string){
+        const exam=await this.database.query.exams.findFirst({
+            where:eq(schema.exams.id, examId),
+            columns:{id:true},
+        });
+        return !!exam;
+    }
 
     async getExamSectionByID(sectionType:'READING' | 'LISTENING' | 'WRITING', examId:string){
         return await this.database.query.exams.findFirst({
@@ -27,8 +48,12 @@ export class ExamRepository{
             with:{
                 sections:{
                     where:eq(schema.examSections.type, sectionType),
+                    orderBy:(s,{asc})=>[asc(s.partNumber)],
                     with:{
-                        questions:true
+                        questions:{
+                            columns:{correctAnswer:false},
+                            orderBy:(q,{asc})=>[asc(q.questionNumber)],
+                        }
                     }
                 }
             }
@@ -59,8 +84,11 @@ export class ExamRepository{
                 
                 if(section.questions && Array.isArray(section.questions) && section.questions.length > 0){
                     const questionToInsert = section.questions.map((q)=>({
-                        ...q,
-                        sectionId:newSection.id
+                        sectionId:newSection.id,
+                        questionNumber:q.questionNumber,
+                        type:q.type,
+                        text:q.text,
+                        correctAnswer:q.correctAnswer,
                     }));
                     await tx.insert(schema.questions).values(questionToInsert);
                 }

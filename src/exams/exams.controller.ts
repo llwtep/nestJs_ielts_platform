@@ -10,6 +10,11 @@ import { CacheInterceptor } from '@nestjs/cache-manager';
 @UseInterceptors(CacheInterceptor)
 export class ExamsController {
   constructor(private readonly examsService: ExamsService) {}
+  @Get()
+  @ApiBearerAuth()
+  async listExams(){
+    return await this.examsService.listExams();
+  }
   @Post('create-full')
   @ApiBearerAuth()
     async createFullExam(@Body() createExamDto:CreateFullExamDto){
