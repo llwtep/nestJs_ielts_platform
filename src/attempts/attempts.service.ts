@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { AttemptsRepo } from './attempts.repository';
 import { ExamsService } from 'src/exams/exams.service';
 import { attemptCreateDto, AttemptUpdateDto } from './dto/attempts.dto';
@@ -16,55 +16,80 @@ export class AttemptsService {
         private readonly examService:ExamsService
     ){}
     
-    async startAttempt(attempt:attemptCreateDto){
+    async startAttempt(userId:string, attempt:attemptCreateDto){
         //checking examID
-        const exam=await this.examService.getFullExam(attempt.examId);
-        if(!exam){
+        if(!await this.examService.examExists(attempt.examId)){
             throw new NotFoundException(`Exam with id ${attempt.examId} not found`);
         }
         //check if attempt already created with this exam for user
-        const attemptOld=await this.attemptRepo.IsInProgressAttempt(attempt.examId,attempt.userId);
+        const attemptOld=await this.attemptRepo.IsInProgressAttempt(attempt.examId,userId);
         if(attemptOld){
             return attemptOld;
-        }else{
-            return await this.attemptRepo.create({
-                ...attempt,
-                id: randomUUID()
-            });
         }
+        const [created]=await this.attemptRepo.create({
+            id: randomUUID(),
+            userId,
+            examId: attempt.examId,
+            status: 'IN_PROGRESS',
+        });
+        return created;
     }
 
-    async updateAttempt(attemptId:string,updatedAttempt:AttemptUpdateDto){
+    // попытка должна существовать и принадлежать пользователю
+    private async getOwnAttempt(attemptId:string, userId:string){
         const attempt=await this.attemptRepo.getAttempt(attemptId);
         if(!attempt){
             throw new NotFoundException(`Attempt with id ${attemptId} not found`);
         }
-        return await this.attemptRepo.update(attemptId, updatedAttempt)
+        if(attempt.userId!==userId){
+            throw new ForbiddenException('This attempt belongs to another user');
+        }
+        return attempt;
     }
 
-    async finishAttempt(attemptId:string, updatedAttempt:AttemptUpdateDto){
-        const attempt=await this.attemptRepo.getAttempt(attemptId);
-        if(!attempt){
-            throw new NotFoundException(`Attempt with id ${attemptId} not found`);
+    async updateAttempt(attemptId:string, userId:string, updatedAttempt:AttemptUpdateDto){
+        const attempt=await this.getOwnAttempt(attemptId,userId);
+        if(attempt.status!=='IN_PROGRESS'){
+            throw new BadRequestException('Attempt is already submitted');
         }
-        //update attempt
-        updatedAttempt.status='COMPLETED';
-        await this.attemptRepo.update(attemptId,updatedAttempt);
-        //add task to worker
+        return await this.attemptRepo.update(attemptId, {
+            status:'IN_PROGRESS',
+            answers:updatedAttempt.answers ?? [],
+        });
+    }
+
+    async finishAttempt(attemptId:string, userId:string, updatedAttempt:AttemptUpdateDto){
+        const attempt=await this.getOwnAttempt(attemptId,userId);
+        if(attempt.status!=='IN_PROGRESS'){
+            throw new BadRequestException('Attempt is already submitted');
+        }
+        //сохраняем последнюю пачку ответов и закрываем попытку
+        await this.attemptRepo.update(attemptId,{
+            status:'COMPLETED',
+            answers:updatedAttempt.answers ?? [],
+        });
+        //add task to worker, jobId привязан к попытке - дубль в очередь не попадёт
         await this.examQueue.add('analyze-scores',
+            { attemptId },
             {
-            attemptId,
-            updatedAttempt,
-            },
-            {
+                jobId:attemptId,
                 attempts:3,
                 backoff:5000
             });
-        return { success: true, message:"Exam submitted for checking" };
+        return { success: true, attemptId, status:'COMPLETED', message:"Exam submitted for checking" };
        
     }
 
-    
+    async getAttemptResult(attemptId:string, userId:string){
+        const attempt=await this.attemptRepo.getAttemptWithAnswers(attemptId);
+        if(!attempt){
+            throw new NotFoundException(`Attempt with id ${attemptId} not found`);
+        }
+        if(attempt.userId!==userId){
+            throw new ForbiddenException('This attempt belongs to another user');
+        }
+        return attempt;
+    }
 
     async getAttemptsByUserId(userId:string){
         return await this.attemptRepo.getAttemptsByUserId(userId);

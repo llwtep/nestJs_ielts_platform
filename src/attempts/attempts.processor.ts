@@ -1,10 +1,9 @@
-import { Processor, WorkerHost } from "@nestjs/bullmq";
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { Job } from "bullmq";
 import { AttemptsRepo } from './attempts.repository';
 import { ExamsService } from 'src/exams/exams.service';
 import { AiService } from "src/ai/ai.service";
-import { AttemptUpdateDto } from "./dto/attempts.dto";
 
 type AttemptScores = {
     listening?:number;
@@ -30,49 +29,68 @@ export class AttemptProcessor extends WorkerHost{
   ) {
     super();
   }
+    private readonly logger=new Logger(AttemptProcessor.name);
+
     async process(job: Job<any, any, string>): Promise<any> {
-        if(job.name=='analyze-scores'){
-            const {attemptId,updatedAttempt}=job.data;
-             //get correct answers
-                    const [listeningCorrect, readingCorrect]=await Promise.all([
-                        this.examService.getCorrectAnswers({examId:updatedAttempt.examId, sectionType:'LISTENING'}),
-                        this.examService.getCorrectAnswers({examId:updatedAttempt.examId, sectionType:'READING'}),
-                    ]);
-                    const answers=updatedAttempt.answers ?? [];
-                    const listeningAnswers=answers.filter((answer)=>answer.typeOfSection==='LISTENING');
-                    const readingAnswers=answers.filter((answer)=>answer.typeOfSection==='READING');
-                    const writingAnswers=answers.filter((answer)=>answer.typeOfSection==='WRITING');
-                    const scores:AttemptScores={}
-                    if(listeningCorrect.size>0 || listeningAnswers.length>0){
-                        const listeningRawScore=this.calculateRawScore(listeningAnswers, listeningCorrect);
-                        scores.listening=this.convertRawToBand(listeningRawScore);
-                    }
-                    if(readingCorrect.size>0 || readingAnswers.length>0){
-                        const readingRawScore=this.calculateRawScore(readingAnswers, readingCorrect);
-                        scores.reading=this.convertRawToBand(readingRawScore);
-                    }
-                    if(writingAnswers.length>0){
-                        const combinedText = writingAnswers.map((a) => a.answerText).join('\n\n');
-                        const id: number = writingAnswers[0]?.questionId;
-                        const topic = await this.examService.getWritingTopic(id);
-                        if (!topic) {
-                            throw new NotFoundException(`Question ${id} not found`);
-                        }
-                        const { type, text } = topic;
-                        
-                        const writingScore=await this.aiService.analyzeText(combinedText,type,text!);
-                        scores.writing=writingScore;
-                    }
-                    await this.attemptRepo.updateScores(attemptId, scores);
-                    return { success: true, scores };
+        if(job.name!=='analyze-scores') return;
+        const {attemptId}=job.data;
+        //ответы берём из БД, а не из тела запроса: там лежит всё, включая автосохранения
+        const attempt=await this.attemptRepo.getAttemptWithAnswers(attemptId);
+        if(!attempt){
+            throw new NotFoundException(`Attempt ${attemptId} not found`);
+        }
+        await this.attemptRepo.setStatus(attemptId,'SCORING');
+
+        const [listeningCorrect, readingCorrect]=await Promise.all([
+            this.examService.getCorrectAnswers({examId:attempt.examId, sectionType:'LISTENING'}),
+            this.examService.getCorrectAnswers({examId:attempt.examId, sectionType:'READING'}),
+        ]);
+        const answers=attempt.answers ?? [];
+        const listeningAnswers=answers.filter((answer)=>answer.typeOfSection==='LISTENING');
+        const readingAnswers=answers.filter((answer)=>answer.typeOfSection==='READING');
+        const writingAnswers=answers.filter((answer)=>answer.typeOfSection==='WRITING');
+        const scores:AttemptScores={}
+        //секции нет в экзамене - не выставляем за неё балл
+        if(listeningCorrect.size>0){
+            const listeningRawScore=this.calculateRawScore(listeningAnswers, listeningCorrect);
+            scores.listening=this.convertRawToBand(listeningRawScore);
+        }
+        if(readingCorrect.size>0){
+            const readingRawScore=this.calculateRawScore(readingAnswers, readingCorrect);
+            scores.reading=this.convertRawToBand(readingRawScore);
+        }
+        if(writingAnswers.length>0){
+            const combinedText = writingAnswers.map((a) => a.answerText).join('\n\n');
+            const id: number = writingAnswers[0].questionId;
+            const topic = await this.examService.getWritingTopic(id);
+            if (!topic) {
+                throw new NotFoundException(`Question ${id} not found`);
+            }
+            const { type, text } = topic;
+
+            const writingScore=await this.aiService.analyzeText(combinedText,type,text!);
+            scores.writing=writingScore;
+        }
+        await this.attemptRepo.updateScores(attemptId, scores, 'SCORED');
+        return { success: true, scores };
+    }
+
+    @OnWorkerEvent('failed')
+    async onFailed(job: Job){
+        //ретраи ещё остались - попытка вернётся в очередь
+        if(job.attemptsMade < (job.opts.attempts ?? 1)) return;
+        this.logger.error(`Scoring failed for attempt ${job.data?.attemptId}: ${job.failedReason}`);
+        if(job.data?.attemptId){
+            await this.attemptRepo.setStatus(job.data.attemptId,'SCORING_FAILED');
         }
     }
+
     private normalizeAnswer(answerText:string){
         return answerText.trim().replace(/\s+/g,' ').toLowerCase();
     }
 
     private calculateRawScore(
-        answers:AttemptUpdateDto['answers'],
+        answers:{questionId:number; answerText:string}[],
         correctAnswersMap:Map<number,{correctAnswer:string}>
         ){
         let rawScore=0;
