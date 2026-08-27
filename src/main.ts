@@ -7,7 +7,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({transform:true}));
   app.use(cookieParser());
-
+  app.enableCors({
+    origin:['http://localhost:3001', 'http://127.0.0.1:3001'],
+    credentials:true,
+  })
   const config=new DocumentBuilder()
   .setTitle('IELTS EXAMS')
   .setDescription('API Documentation for ielts backend')
