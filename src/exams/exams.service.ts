@@ -9,8 +9,8 @@ export class ExamsService {
     async listExams(){
         return await this.examRepo.listExams();
     }
-    async examExists(examId:string){
-        return await this.examRepo.examExists(examId);
+    async getExamMeta(examId:string){
+        return await this.examRepo.getExamMeta(examId);
     }
     async getFullExam(id:string){
         const exam=await this.examRepo.getFullExam(id);

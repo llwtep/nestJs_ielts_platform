@@ -1,13 +1,14 @@
 
 import { relations } from "drizzle-orm";
 
-import { uuid, text, integer, serial, index} from "drizzle-orm/pg-core";
+import { uuid, text, integer, serial, index, jsonb} from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
 
 export const exams=pgTable('exams',{
     id:uuid('id').primaryKey(),
     type:text('type'),
-    title:text('title')
+    title:text('title'),
+    durationMinutes:integer('duration_minutes').default(165).notNull()
 })
 
 export const examSections = pgTable('exam_sections', {
@@ -28,7 +29,7 @@ export const questions = pgTable('questions', {
   questionNumber: integer('question_number').notNull(), 
   type: text('type').notNull(), 
   text: text('text'), 
-  options: text('options'), 
+  options: jsonb('options').$type<string[]>(), 
   correctAnswer: text('correct_answer').notNull(), 
 },(table)=>({
     sectionIdx:index('questions_section_id_idx').on(table.sectionId)

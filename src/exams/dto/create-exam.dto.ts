@@ -13,7 +13,12 @@
     @IsOptional()
     @IsString()
     text?: string;
-    @ApiProperty({example:"correct answer"})
+    @ApiProperty({example:["A","B","C"], required:false, description:'варианты для multiple choice'})
+    @IsOptional()
+    @IsArray()
+    @IsString({each:true})
+    options?: string[];
+    @ApiProperty({example:"correct answer", description:'несколько допустимых вариантов через |'})
     @IsString()
     correctAnswer!: string;
   }
@@ -29,6 +34,10 @@
     @ApiProperty()
     @IsNumber()
     partNumber!: number;
+    @ApiProperty({required:false})
+    @IsOptional()
+    @IsString()
+    title?: string;
     @ApiProperty()
     @IsOptional()
     @IsString()
@@ -54,6 +63,10 @@
     @IsOptional()
     @IsEnum(['ACADEMIC', 'GENERAL'])
     type?: 'ACADEMIC' | 'GENERAL';
+    @ApiProperty({ example: 165, required: false, description: 'длительность попытки в минутах' })
+    @IsOptional()
+    @IsNumber()
+    durationMinutes?: number;
     @ApiProperty()
     @IsArray()
     @ValidateNested({ each: true })

@@ -11,6 +11,7 @@ export const attempts=pgTable('attempts',{
     status:text('status').default('IN_PROGRESS'),
     scores:jsonb('scores').$type<AttemptScores>(),
     createdAt:timestamp('created_at').defaultNow().notNull(),
+    expiresAt:timestamp('expires_at'),
     finishedAt:timestamp('finished_at'),
     },(table)=>({
         userIdIdx:index('attempt_user_id_idx').on(table.userId),

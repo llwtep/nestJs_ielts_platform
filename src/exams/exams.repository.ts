@@ -33,13 +33,12 @@ export class ExamRepository{
         });
     };
 
-    // без загрузки вопросов - для проверок существования экзамена
-    async examExists(examId:string){
-        const exam=await this.database.query.exams.findFirst({
+    // без загрузки вопросов - для старта попытки
+    async getExamMeta(examId:string){
+        return await this.database.query.exams.findFirst({
             where:eq(schema.exams.id, examId),
-            columns:{id:true},
+            columns:{id:true, title:true, type:true, durationMinutes:true},
         });
-        return !!exam;
     }
 
     async getExamSectionByID(sectionType:'READING' | 'LISTENING' | 'WRITING', examId:string){
@@ -65,6 +64,7 @@ export class ExamRepository{
     async createCompleteExam(data:{
         title:string,
         type?:string,
+        durationMinutes?:number,
         sections:any[]
     }){
         return await this.database.transaction(async (tx)=>{
@@ -72,6 +72,7 @@ export class ExamRepository{
                 id:randomUUID(),
                 title:data.title,
                 type:data.type ?? 'ACADEMIC',
+                ...(data.durationMinutes ? {durationMinutes:data.durationMinutes} : {}),
             }).returning()
 
             for (const section of data.sections){
@@ -81,6 +82,7 @@ export class ExamRepository{
                         examId:newExam.id,
                         type:section.type,
                         partNumber:section.partNumber,
+                        title:section.title,
                         content:section.content,
                         contentUrl:section.contentUrl
 
@@ -93,6 +95,7 @@ export class ExamRepository{
                         questionNumber:q.questionNumber,
                         type:q.type,
                         text:q.text,
+                        options:q.options,
                         correctAnswer:q.correctAnswer,
                     }));
                     await tx.insert(schema.questions).values(questionToInsert);

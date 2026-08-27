@@ -18,7 +18,8 @@ export class AttemptsService {
     
     async startAttempt(userId:string, attempt:attemptCreateDto){
         //checking examID
-        if(!await this.examService.examExists(attempt.examId)){
+        const exam=await this.examService.getExamMeta(attempt.examId);
+        if(!exam){
             throw new NotFoundException(`Exam with id ${attempt.examId} not found`);
         }
         //check if attempt already created with this exam for user
@@ -31,6 +32,7 @@ export class AttemptsService {
             userId,
             examId: attempt.examId,
             status: 'IN_PROGRESS',
+            expiresAt: new Date(Date.now() + exam.durationMinutes * 60_000),
         });
         return created;
     }
@@ -47,10 +49,35 @@ export class AttemptsService {
         return attempt;
     }
 
+    private isExpired(attempt:{expiresAt:Date|null}){
+        return !!attempt.expiresAt && attempt.expiresAt.getTime() < Date.now();
+    }
+
+    //закрывает попытку и ставит её в очередь на проверку
+    private async submitForScoring(attemptId:string, answers:AttemptUpdateDto['answers']){
+        await this.attemptRepo.update(attemptId,{
+            status:'COMPLETED',
+            answers:answers ?? [],
+        });
+        //jobId привязан к попытке - дубль в очередь не попадёт
+        await this.examQueue.add('analyze-scores',
+            { attemptId },
+            {
+                jobId:attemptId,
+                attempts:3,
+                backoff:5000
+            });
+    }
+
     async updateAttempt(attemptId:string, userId:string, updatedAttempt:AttemptUpdateDto){
         const attempt=await this.getOwnAttempt(attemptId,userId);
         if(attempt.status!=='IN_PROGRESS'){
             throw new BadRequestException('Attempt is already submitted');
+        }
+        //время вышло - принимать новые ответы уже нельзя, сдаём что есть
+        if(this.isExpired(attempt)){
+            await this.submitForScoring(attemptId, []);
+            throw new BadRequestException('Attempt time is over, it was submitted automatically');
         }
         return await this.attemptRepo.update(attemptId, {
             status:'IN_PROGRESS',
@@ -63,21 +90,9 @@ export class AttemptsService {
         if(attempt.status!=='IN_PROGRESS'){
             throw new BadRequestException('Attempt is already submitted');
         }
-        //сохраняем последнюю пачку ответов и закрываем попытку
-        await this.attemptRepo.update(attemptId,{
-            status:'COMPLETED',
-            answers:updatedAttempt.answers ?? [],
-        });
-        //add task to worker, jobId привязан к попытке - дубль в очередь не попадёт
-        await this.examQueue.add('analyze-scores',
-            { attemptId },
-            {
-                jobId:attemptId,
-                attempts:3,
-                backoff:5000
-            });
+        //после дедлайна оцениваем только то, что успело сохраниться
+        await this.submitForScoring(attemptId, this.isExpired(attempt) ? [] : updatedAttempt.answers);
         return { success: true, attemptId, status:'COMPLETED', message:"Exam submitted for checking" };
-       
     }
 
     async getAttemptResult(attemptId:string, userId:string){
