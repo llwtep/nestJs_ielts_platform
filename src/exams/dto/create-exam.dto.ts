@@ -1,14 +1,16 @@
   import { IsString, IsEnum, IsNumber, IsOptional, IsArray, ValidateNested } from 'class-validator';
   import { Type } from 'class-transformer';
   import { ApiProperty } from '@nestjs/swagger';
+  import { EXAM_TYPES, QUESTION_TYPES, SECTION_TYPES } from '../constants';
+  import type { ExamKind, QuestionKind, SectionKind } from '../constants';
 
   export class CreateQuestionDto {
     @ApiProperty({example:1})
     @IsNumber()
     questionNumber!: number;
-    @ApiProperty({example:"Multiple choice"})
-    @IsString()
-    type!: string;
+    @ApiProperty({enum: QUESTION_TYPES, example: 'MCQ'})
+    @IsEnum(QUESTION_TYPES)
+    type!: QuestionKind;
     @ApiProperty({example:"Question"})
     @IsOptional()
     @IsString()
@@ -25,12 +27,9 @@
 
 
   export class CreateSectionDto {
-    @ApiProperty({ 
-    enum: ['LISTENING', 'READING', 'WRITING'],
-    example: 'LISTENING' 
-  })
-    @IsEnum(['LISTENING', 'READING', 'WRITING'])
-    type!: 'LISTENING' | 'READING' | 'WRITING';
+    @ApiProperty({ enum: SECTION_TYPES, example: 'LISTENING' })
+    @IsEnum(SECTION_TYPES)
+    type!: SectionKind;
     @ApiProperty()
     @IsNumber()
     partNumber!: number;
@@ -59,10 +58,10 @@
     @ApiProperty()
     @IsString()
     title!: string;
-    @ApiProperty({ enum: ['ACADEMIC', 'GENERAL'], example: 'ACADEMIC', required: false })
+    @ApiProperty({ enum: EXAM_TYPES, example: 'ACADEMIC', required: false })
     @IsOptional()
-    @IsEnum(['ACADEMIC', 'GENERAL'])
-    type?: 'ACADEMIC' | 'GENERAL';
+    @IsEnum(EXAM_TYPES)
+    type?: ExamKind;
     @ApiProperty({ example: 165, required: false, description: 'длительность попытки в минутах' })
     @IsOptional()
     @IsNumber()

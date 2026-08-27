@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ExamRepository } from './exams.repository';
 import { CreateFullExamDto } from './dto/create-exam.dto';
 import { ExamNotFoundError } from './exceptions/domain-errors';
+import { FIXED_OPTIONS, OPTION_BASED } from './constants';
 
 @Injectable()
 export class ExamsService {
@@ -20,6 +21,32 @@ export class ExamsService {
         return exam;
     }
     async createFullExam(dto:CreateFullExamDto){
+        const seenSections=new Set<string>();
+        for(const section of dto.sections){
+            const sectionKey=`${section.type}:${section.partNumber}`;
+            if(seenSections.has(sectionKey)){
+                throw new BadRequestException(`Duplicate section ${sectionKey}`);
+            }
+            seenSections.add(sectionKey);
+
+            const seenQuestions=new Set<number>();
+            for(const question of section.questions ?? []){
+                if(seenQuestions.has(question.questionNumber)){
+                    throw new BadRequestException(`Duplicate question ${question.questionNumber} in ${sectionKey}`);
+                }
+                seenQuestions.add(question.questionNumber);
+
+                //у TRUE/FALSE и YES/NO варианты всегда одни и те же
+                if(!question.options?.length){
+                    question.options=FIXED_OPTIONS[question.type];
+                }
+                if(OPTION_BASED.includes(question.type) && !question.options?.length){
+                    throw new BadRequestException(
+                        `Question ${question.questionNumber} of type ${question.type} requires options`,
+                    );
+                }
+            }
+        }
         return await this.examRepo.createCompleteExam(dto);
     }
     async getReadingById(examId:string){
