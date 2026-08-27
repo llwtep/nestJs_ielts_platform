@@ -53,7 +53,7 @@ export class AuthService {
             const payload=await this.jwtService.verifyAsync(token);
             const hashedRefreshToken=await this.cacheManager.get(`refreshToken:${payload.sub}`) as string;
             if (!hashedRefreshToken || !await bcrypt.compare(token, hashedRefreshToken)) throw new UnauthorizedException('No refresh token found');
-            const tokens=this.generateTokens({sub:payload.sub, email:payload.email});
+            const tokens=this.generateTokens({sub:payload.sub, email:payload.email, role:payload.role});
             await this.updateRefreshToken(payload.sub, tokens.refresh_token);
             return tokens; 
         } catch (e){

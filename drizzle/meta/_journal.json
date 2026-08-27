@@ -15,6 +15,13 @@
       "when": 1785836199333,
       "tag": "0001_broken_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787832419360,
+      "tag": "0002_chemical_tana_nile",
+      "breakpoints": true
     }
   ]
 }

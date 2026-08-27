@@ -1,11 +1,15 @@
-import { Body, Controller, Get, Param, Post, UseFilters, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { CreateFullExamDto } from './dto/create-exam.dto';
 import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { DomainExceptionFilter } from './exceptions/domain-exceptions';
 import { CacheInterceptor } from '@nestjs/cache-manager';
+import { jwtGuard } from 'src/auth/guards/jwt.guard';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
 
 @Controller('exams')
+@UseGuards(jwtGuard)
+@ApiBearerAuth()
 @UseFilters(DomainExceptionFilter)
 @UseInterceptors(CacheInterceptor)
 export class ExamsController {
@@ -16,7 +20,7 @@ export class ExamsController {
     return await this.examsService.listExams();
   }
   @Post('create-full')
-  @ApiBearerAuth()
+  @UseGuards(AdminGuard)
     async createFullExam(@Body() createExamDto:CreateFullExamDto){
       return await this.examsService.createFullExam(createExamDto);
     }
@@ -26,7 +30,7 @@ export class ExamsController {
     name:'id',
     description:'Exam id'
   })
-  async getFullExam(@Param('id') id:string){
+  async getFullExam(@Param('id', ParseUUIDPipe) id:string){
     return await this.examsService.getFullExam(id);
   }
   @ApiParam({
@@ -35,7 +39,7 @@ export class ExamsController {
   })
   @ApiBearerAuth()
   @Get('reading/:id')
-  async getReadingById(@Param('id') id:string){
+  async getReadingById(@Param('id', ParseUUIDPipe) id:string){
     return await this.examsService.getReadingById(id);
   }
   @ApiParam({
@@ -44,7 +48,7 @@ export class ExamsController {
   })
   @ApiBearerAuth()
   @Get('listening/:id')
-  async getListeningById(@Param('id') id:string){
+  async getListeningById(@Param('id', ParseUUIDPipe) id:string){
     return await this.examsService.getListeningById(id);
   }
   @ApiParam({
@@ -53,7 +57,7 @@ export class ExamsController {
   })
   @ApiBearerAuth()
   @Get('writing/:id')
-  async getWritingById(@Param('id') id:string){
+  async getWritingById(@Param('id', ParseUUIDPipe) id:string){
     return await this.examsService.getWritingById(id);
   }
 }

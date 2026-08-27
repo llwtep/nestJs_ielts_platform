@@ -29,7 +29,7 @@ export class AuthController {
     @UseGuards(LocalGuard)
     async login(@Req() req){
         const user=req.user;
-        const tokens=this.authService.generateTokens({sub:user.id, email:user.email});
+        const tokens=this.authService.generateTokens({sub:user.id, email:user.email, role:user.role});
         await this.authService.updateRefreshToken(user.id, tokens.refresh_token);
         return tokens;
      }
