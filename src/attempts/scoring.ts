@@ -88,13 +88,33 @@ export function writingBand(tasks: WritingTaskScore[]) {
     return half(tasks[0].band);
 }
 
+// официальный минимум объёма: Task 1 - 150 слов, Task 2 - 250
+export const MIN_WORDS: Record<number, number> = { 1: 150, 2: 250 };
+
+export const minWordsFor = (task: number) => MIN_WORDS[task] ?? 250;
+
+export function countWords(text: string) {
+    const trimmed = text.trim();
+    return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+// IELTS штрафует за недобор объёма, а модели этого почти не делают
+// ponytail: пороги прикидочные, заменить на официальную шкалу дескрипторов если понадобится точность
+export function underLengthCap(words: number, task: number) {
+    const ratio = words / minWordsFor(task);
+    if (ratio < 0.1) return 1;   // это не попытка ответа
+    if (ratio < 0.35) return 3;  // обрывок
+    if (ratio < 0.7) return 5;   // существенно короче нормы
+    return 9;                    // ограничения нет
+}
+
 export function overallBand(bands: number[]) {
     if (bands.length === 0) return undefined;
     return half(bands.reduce((sum, b) => sum + b, 0) / bands.length);
 }
 
 
-export function parseWritingScore(raw: any, task: number): WritingTaskScore {
+export function parseWritingScore(raw: any, task: number, words: number): WritingTaskScore {
     const criterion = (value: any) => {
         const n = Number(value);
         if (!Number.isFinite(n)) return null;
@@ -107,13 +127,33 @@ export function parseWritingScore(raw: any, task: number): WritingTaskScore {
     if (taskResponse === null || coherence === null || lexical === null || grammar === null) {
         throw new Error('AI returned incomplete IELTS criteria');
     }
+    const scored = half((taskResponse + coherence + lexical + grammar) / 4);
+    const cap = underLengthCap(words, task);
+    const feedback = typeof raw?.feedback === 'string' ? raw.feedback.slice(0, 1000) : '';
+
     return {
         task,
-        band: half((taskResponse + coherence + lexical + grammar) / 4),
+        band: Math.min(scored, cap),
         taskResponse,
         coherence,
         lexical,
         grammar,
-        feedback: typeof raw?.feedback === 'string' ? raw.feedback.slice(0, 1000) : '',
+        feedback:
+            cap < scored
+                ? `Band capped at ${cap.toFixed(1)}: ${words} words against a ${minWordsFor(task)}-word minimum. ${feedback}`
+                : feedback,
+    };
+}
+
+// пустой ответ до модели не доезжает - оценивать нечего
+export function emptyWritingScore(task: number): WritingTaskScore {
+    return {
+        task,
+        band: 1,
+        taskResponse: 1,
+        coherence: 1,
+        lexical: 1,
+        grammar: 1,
+        feedback: 'No response submitted for this task.',
     };
 }

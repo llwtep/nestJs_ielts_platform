@@ -1,11 +1,16 @@
 import {
+    countWords,
     isAnswerCorrect,
     normalizeAnswer,
     overallBand,
     parseWritingScore,
     rawToBand,
+    underLengthCap,
     writingBand,
 } from './scoring';
+
+// длинный ответ, чтобы штраф за объём не срабатывал
+const FULL_LENGTH = 300;
 
 describe('scoring', () => {
     it('normalizes articles, case, punctuation and spacing', () => {
@@ -50,10 +55,33 @@ describe('scoring', () => {
         const score = parseWritingScore(
             { band: 11, taskResponse: 7, coherence: 6, lexical: 6, grammar: 20, feedback: 42 },
             2,
+            FULL_LENGTH,
         );
         expect(score.grammar).toBe(9);
         expect(score.band).toBe(7.0);
         expect(score.feedback).toBe('');
-        expect(() => parseWritingScore({ taskResponse: 'nope' }, 1)).toThrow();
+        expect(() => parseWritingScore({ taskResponse: 'nope' }, 1, FULL_LENGTH)).toThrow();
+    });
+
+    it('counts words and caps under-length responses', () => {
+        expect(countWords('  There  no charts, i dont know bruh ')).toBe(7);
+        expect(countWords('   ')).toBe(0);
+
+        // 7 слов против минимума 150 для Task 1
+        expect(underLengthCap(7, 1)).toBe(1);
+        expect(underLengthCap(40, 1)).toBe(3);
+        expect(underLengthCap(100, 1)).toBe(5);
+        expect(underLengthCap(160, 1)).toBe(9);
+        // у Task 2 минимум выше, те же 160 слов уже недобор
+        expect(underLengthCap(160, 2)).toBe(5);
+    });
+
+    it('does not let the model reward a seven-word essay', () => {
+        const generous = { taskResponse: 5, coherence: 5, lexical: 5, grammar: 5, feedback: 'ok' };
+        expect(parseWritingScore(generous, 1, FULL_LENGTH).band).toBe(5);
+
+        const capped = parseWritingScore(generous, 1, 7);
+        expect(capped.band).toBe(1);
+        expect(capped.feedback).toContain('7 words against a 150-word minimum');
     });
 });

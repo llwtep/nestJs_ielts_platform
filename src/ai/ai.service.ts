@@ -39,7 +39,12 @@ export class AiService {
             debugLogger:this.configService.get<string>('AI_DEBUG')==='true' ? console : undefined,
         });
     }
-    async analyzeText(text:string, type:string,qtext:string){
+    async analyzeText(
+        text:string,
+        type:string,
+        qtext:string,
+        length:{words:number; minWords:number},
+    ){
         const prompt = `
                 You are an expert IELTS Writing examiner.
 
@@ -59,7 +64,12 @@ export class AiService {
                 "feedback": "string"
                 }
 
+                LENGTH (counted by our system, trust these numbers over your own estimate):
+                - the response is ${length.words} words
+                - the required minimum is ${length.minWords} words
+
                 Rules:
+                - a response far below the minimum cannot score above band 3
                 - No markdown
                 - No explanations
                 - No text before or after JSON

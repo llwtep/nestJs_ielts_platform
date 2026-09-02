@@ -6,8 +6,11 @@ import { ExamsService } from 'src/exams/exams.service';
 import { AiService } from "src/ai/ai.service";
 import {
     AttemptScores,
+    countWords,
+    emptyWritingScore,
     ExamType,
     isAnswerCorrect,
+    minWordsFor,
     overallBand,
     parseWritingScore,
     rawToBand,
@@ -98,8 +101,19 @@ export class AttemptProcessor extends WorkerHost{
             //Task 1 и Task 2 - разные задания, каждое оценивается отдельно
             const graded:WritingTaskScore[]=[];
             for(const task of writingTasks.sort((a,b)=>a.task-b.task)){
-                const result=await this.aiService.analyzeText(task.text, task.questionType, task.topic);
-                graded.push(parseWritingScore(result, task.task));
+                const words=countWords(task.text);
+                //пустой ответ незачем отправлять в модель
+                if(words===0){
+                    graded.push(emptyWritingScore(task.task));
+                    continue;
+                }
+                const result=await this.aiService.analyzeText(
+                    task.text,
+                    task.questionType,
+                    task.topic,
+                    { words, minWords: minWordsFor(task.task) },
+                );
+                graded.push(parseWritingScore(result, task.task, words));
             }
             const band=writingBand(graded);
             if(band!==undefined) scores.writing={band, tasks:graded};
