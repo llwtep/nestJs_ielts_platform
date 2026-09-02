@@ -12,9 +12,9 @@ export class AiService {
 
     //список моделей задаётся через AI_MODELS, иначе дефолт ниже
     private static readonly DEFAULT_MODELS=[
-        'openai/gpt-oss-120b:free',
-        'z-ai/glm-4.5-air:free',
-        'meta-llama/llama-3.3-70b-instruct:free',
+        'inclusionai/ling-3.0-flash-fin:free',
+        'nvidia/nemotron-3.5-lightning:free',
+        'minimax/minimax-m3:free',
     ];
 
     private static readonly REQUEST_TIMEOUT_MS=45_000;

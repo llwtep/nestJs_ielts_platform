@@ -20,10 +20,10 @@ export type AttemptScores = {
     overall?: number;
 };
 
-// IELTS оперирует половинками балла
+
 export const half = (n: number) => Math.round(n * 2) / 2;
 
-// [минимальный raw score из 40, band]
+
 const LISTENING: [number, number][] = [
     [39, 9.0], [37, 8.5], [35, 8.0], [32, 7.5], [30, 7.0], [26, 6.5], [23, 6.0],
     [18, 5.5], [16, 5.0], [13, 4.5], [10, 4.0], [8, 3.5], [6, 3.0], [4, 2.5],
@@ -51,14 +51,14 @@ export function normalizeAnswer(text: string) {
         .replace(/^(a|an|the) /, '');
 }
 
-// correctAnswer может держать несколько допустимых вариантов через |
+
 export function isAnswerCorrect(given: string, correct: string) {
     const answer = normalizeAnswer(given);
     if (!answer) return false;
     return correct.split('|').some((variant) => normalizeAnswer(variant) === answer);
 }
 
-// таблицы конверсии рассчитаны на 40 вопросов - короткие секции масштабируем
+
 export function rawToBand(
     raw: number,
     total: number,
@@ -79,7 +79,7 @@ export function rawToBand(
     return 0;
 }
 
-// Task 2 весит вдвое больше Task 1
+
 export function writingBand(tasks: WritingTaskScore[]) {
     if (tasks.length === 0) return undefined;
     const task1 = tasks.find((t) => t.task === 1);
@@ -93,7 +93,7 @@ export function overallBand(bands: number[]) {
     return half(bands.reduce((sum, b) => sum + b, 0) / bands.length);
 }
 
-// модели любят вернуть band 11 или строку вместо числа - считаем band сами
+
 export function parseWritingScore(raw: any, task: number): WritingTaskScore {
     const criterion = (value: any) => {
         const n = Number(value);
