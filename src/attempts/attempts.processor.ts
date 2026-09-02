@@ -1,6 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { Job } from "bullmq";
+import { Injectable, Logger } from "@nestjs/common";
+import { Job, UnrecoverableError } from "bullmq";
 import { AttemptsRepo } from './attempts.repository';
 import { ExamsService } from 'src/exams/exams.service';
 import { AiService } from "src/ai/ai.service";
@@ -34,7 +34,8 @@ export class AttemptProcessor extends WorkerHost{
         //ответы берём из БД, а не из тела запроса: там лежит всё, включая автосохранения
         const attempt=await this.attemptRepo.getAttemptWithAnswers(attemptId);
         if(!attempt){
-            throw new NotFoundException(`Attempt ${attemptId} not found`);
+            //попытку удалили - ретраить нечего, сразу в failed
+            throw new UnrecoverableError(`Attempt ${attemptId} not found`);
         }
         await this.attemptRepo.setStatus(attemptId,'SCORING');
 
@@ -115,8 +116,8 @@ export class AttemptProcessor extends WorkerHost{
 
     @OnWorkerEvent('failed')
     async onFailed(job: Job){
-        //ретраи ещё остались - попытка вернётся в очередь
-        if(job.attemptsMade < (job.opts.attempts ?? 1)) return;
+        //false, пока джоба уходит на очередной ретрай
+        if(!(await job.isFailed())) return;
         this.logger.error(`Scoring failed for attempt ${job.data?.attemptId}: ${job.failedReason}`);
         if(job.data?.attemptId){
             await this.attemptRepo.setStatus(job.data.attemptId,'SCORING_FAILED');

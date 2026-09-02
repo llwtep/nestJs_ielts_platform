@@ -65,7 +65,10 @@ export class AttemptsService {
             {
                 jobId:attemptId,
                 attempts:3,
-                backoff:5000
+                backoff:5000,
+                //без этого история джоб копится в Redis бесконечно
+                removeOnComplete:{age:24*3600, count:200},
+                removeOnFail:{age:7*24*3600},
             });
     }
 
