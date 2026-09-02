@@ -1,4 +1,4 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { authPayloadDto } from './dto/auth.dto';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -28,7 +28,15 @@ export class AuthService {
     async sign(user:createUserDto){
         const saltOrRounds=10;
         const hashedPassword=await bcrypt.hash(user.password, saltOrRounds);
-        return this.userService.create({...user,password:hashedPassword});
+        try{
+            return await this.userService.create({...user,password:hashedPassword});
+        }catch(error:any){
+            //unique_violation на users.email
+            if(error?.code==='23505'){
+                throw new ConflictException('Email already registered');
+            }
+            throw error;
+        }
     }
 
     generateTokens(payload){

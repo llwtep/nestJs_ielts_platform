@@ -54,8 +54,9 @@ export class AuthController {
             example:{"message":"successfully created"}
         }
     })
-    signup(@Body(ValidationPipe) newuser:createUserDto){
-        const user=this.authService.sign(newuser);
+    async signup(@Body(ValidationPipe) newuser:createUserDto){
+        //без await ответ уходил раньше вставки, а ошибка вставки терялась
+        await this.authService.sign(newuser);
         return {"message":"successfully created"}
     }
 
